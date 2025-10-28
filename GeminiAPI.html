@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini API Tester</title>
+    <style>
+        body { font-family: sans-serif; max-width: 600px; margin: 20px auto; }
+        textarea { width: 100%; min-height: 80px; }
+        #response { background: #f4f4f4; border-radius: 5px; padding: 10px; min-height: 100px; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+
+    <h1>Gemini Free-Tier API Tester</h1>
+
+    <label for="apiKey">Paste Your Google AI Studio Key:</label>
+    <input type="password" id="apiKey" style="width: 100%;">
+
+    <br><br>
+
+    <label for="prompt">Enter your prompt:</label>
+    <textarea id="prompt">Write a 3-line poem about JavaScript.</textarea>
+
+    <br><br>
+
+    <button id="submitBtn">Send Prompt</button>
+
+    <h3>Response:</h3>
+    <pre id="response">...awaiting prompt...</pre>
+
+    <script>
+        // Target the model: 'gemini-1.5-flash-latest' is free and fast
+        const MODEL_NAME = "gemini-1.5-flash-latest";
+
+        document.getElementById("submitBtn").addEventListener("click", async () => {
+            const apiKey = document.getElementById("apiKey").value;
+            const prompt = document.getElementById("prompt").value;
+            const responseEl = document.getElementById("response");
+
+            if (!apiKey) {
+                responseEl.textContent = "Error: Please paste your API key first.";
+                return;
+            }
+
+            const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+            responseEl.textContent = "Thinking...";
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-goog-api-key": 'AIzaSyCbkWV07zzw0_uF1oIv5xjacdgmA9tHuRk'
+                    },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [{
+                                text: prompt
+                            }]
+                        }]
+                    }),
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                // Extract the text from the response
+                const text = data.candidates[0].content.parts[0].text;
+                responseEl.textContent = text;
+
+            } catch (error) {
+                console.error("Error:", error);
+                responseEl.textContent = "Error fetching response. Check console for details.";
+            }
+        });
+    </script>
+
+</body>
+</html>

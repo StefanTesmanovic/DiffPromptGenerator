@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hugging Face API Tester</title>
+    <style>
+        body { font-family: sans-serif; max-width: 600px; margin: 20px auto; }
+        textarea { width: 100%; min-height: 80px; }
+        #response { background: #f4f4f4; border-radius: 5px; padding: 10px; min-height: 100px; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+
+    <h1>Hugging Face Free-Tier API Tester</h1>
+
+    <label for="apiKey">Paste Your Hugging Face Token (hf_...):</label>
+    <input type="password" id="apiKey" style="width: 100%;">
+
+    <br><br>
+
+    <label for="prompt">Enter your prompt:</label>
+    <textarea id="prompt">Write a 3-line poem about JavaScript.</textarea>
+
+    <br><br>
+
+    <button id="submitBtn">Send Prompt</button>
+
+    <h3>Response:</h3>
+    <pre id="response">...awaiting prompt...</pre>
+
+    <script>
+        // You can change this to any text-generation model on Hugging Face
+        const MODEL_ID = "mistralai/Mistral-7B-Instruct-v0.1";
+        const API_URL = `https://api-inference.huggingface.co/models/${MODEL_ID}`;
+
+        document.getElementById("submitBtn").addEventListener("click", async () => {
+            const token = document.getElementById("apiKey").value;
+            const prompt = document.getElementById("prompt").value;
+            const responseEl = document.getElementById("response");
+
+            if (!token) {
+                responseEl.textContent = "Error: Please paste your API token first.";
+                return;
+            }
+
+            responseEl.textContent = "Model is loading (can take 20-30s first time)...";
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}` // Key part
+                    },
+                    body: JSON.stringify({
+                        inputs: `[INST] ${prompt} [/INST]` // Mistral's required prompt format
+                    }),
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                // Extract the text from the response
+                // Hugging Face returns an array, we take the first item
+                const text = data[0].generated_text;
+
+                // The response includes your prompt, so we can clean it up
+                responseEl.textContent = text.split("[/INST]")[1].trim();
+
+            } catch (error) {
+                console.error("Error:", error);
+                responseEl.textContent = "Error fetching response. The model might be loading. Try again in 30 seconds.";
+            }
+        });
+    </script>
+
+</body>
+</html>
