@@ -4,22 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale-1.0">
     <title>Code Diff Prompt Generator</title>
-    
-    <!-- 1. Load the jsdiff library (JavaScript functionality) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jsdiff/5.1.0/diff.min.js"></script>
-    
-    <!-- 2. Simplified CSS Styles -->
+
     <style>
-        /* Use a simple, clean font stack */
         body {
             font-family: Arial, sans-serif;
-            background-color: #f7fafc; /* light gray */
-            color: #1a202c; /* dark gray */
+            background-color: #f7fafc;
+            color: #1a202c; 
             margin: 0;
             padding: 20px;
         }
 
-        /* Center the main content */
         .container {
             max-width: 900px;
             margin: 0 auto;
@@ -40,31 +35,24 @@
             color: #4a5568;
         }
 
-        
-
-        /* Make each editor take up equal space */
         .editor-column {
             flex: 1;
             text-align: left;
         }
 
-
-        /* Basic styling for textareas (removed box-shadow) */
         textarea {
             width: 100%;
             min-height: 400px;
             font-family: 'Courier New', Courier, monospace;
             font-size: 0.9rem;
             padding: 10px;
-            border: 1px solid #cbd5e0; /* gray border */
+            border: 1px solid #cbd5e0;
             border-radius: 8px;
-            box-sizing: border-box; /* Important for width: 100% */
+            box-sizing: border-box;
         }
 
-
-        /* Basic button styling */
         button {
-            background-color: #3182ce; /* blue */
+            background-color: #3182ce;
             color: white;
             font-weight: bold;
             padding: 12px 24px;
@@ -146,18 +134,16 @@
             overflow-y: auto;
         }
 
-        /* The <pre> tag for the prompt */
         #prompt-output {
             font-family: 'Courier New', Courier, monospace;
             background-color: #f7fafc;
             padding: 15px;
             border-radius: 5px;
-            white-space: pre-wrap; /*stops text from overflowing*/
+            white-space: pre-wrap;
             word-wrap: break-word; 
             text-align: left;
         }
 
-        /* Modal Footer */
         .modal-footer {
             padding: 15px 20px;
             border-top: 1px solid #e2e8f0;
@@ -168,18 +154,25 @@
         }
         
         #copy-btn {
-            background-color: #4a5568; /* dark gray */
+            background-color: #4a5568; 
         }
         
         #copy-btn:hover {
-            background-color: #2d3748; /* darker gray */
+            background-color: #2d3748;
         }
-
+        
+        #response { 
+            font-family: 'Courier New', Courier, monospace;
+            background-color: #f7fafc;
+            padding: 15px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            word-wrap: break-word; 
+            text-align: left;
+        }
     </style>
 </head>
 <body>
-
-    <!-- We use simple class names that match our CSS styles -->
     <div class="container">
         <header>
             <h1>Code Diff Prompt Generator</h1>
@@ -211,14 +204,17 @@
             </div>
             <div class="modal-content">
                 <pre id="prompt-output"></pre>
+                <button id="promptBtn">Test Prompt with Gemini API</button>
+                <pre id="response">Press the button if you want the LLM answer</pre>
             </div>
             <div class="modal-footer">
-                <button id="copy-btn">Copy to Clipboard</button>
+                <button id="copy-btn">Copy Prompt to Clipboard</button>
             </div>
         </div>
     </div>
 
-    <script>
+    <script type="module">
+        import { marked } from "https://cdn.jsdelivr.net/npm/marked/lib/marked.esm.js";
         const originalCodeEl = document.getElementById('original-code');
         const editedCodeEl = document.getElementById('edited-code');
         const generateBtn = document.getElementById('generate-btn');
@@ -229,6 +225,7 @@
         const promptOutputEl = document.getElementById('prompt-output');
         const labela = document.getElementById('label');
         const submitBtn = document.getElementById('submit-btn');
+        const responseEl = document.getElementById("response");
 
         var originalCode = "";
 
@@ -239,13 +236,13 @@
             const patch = Diff.createPatch('code', originalText, editedText);
 
             const promptTemplate = `
-You are an expert code reviewer, known for concise and precise reviews. You work with exceptional engineers that understand instantly from concise bullet points.Your job is to analyze the code and inform about readability, complexity and differences to those two criteriums.
-
+You are an expert code reviewer, known for concise and precise reviews. You work with exceptional engineers that understand instantly from concise bullet points.Your job is to analyze the code and inform about readability, complexity and differences with respect to readability and complexity.
+Use markdown formatting, use the least possible number of new lines.
+Here is the original code:
+${originalText}
 Here is the diff of the changes:
-
-\`\`\`diff
 ${patch}
-\`\`\`
+
 `;          // I noticed that the model was responding with messages that are too 
             // long and waste time. Because of that I tried to shorten them and preserve 
             // information by informing the model of the environment and role instead of giving a word limit 
@@ -255,14 +252,12 @@ ${patch}
         }
 
         function closeModal() {
-            // Hide the modal (no animation)
             modal.style.display = 'none';
         }
 
         function copyToClipboard() {
             const textToCopy = promptOutputEl.textContent;
 
-            // Create a temporary textarea element to hold the text
             const tempTextArea = document.createElement('textarea');
             tempTextArea.value = textToCopy;
             tempTextArea.style.position = 'absolute';
@@ -272,27 +267,17 @@ ${patch}
             tempTextArea.select();
             
             try {
-                // Use the older, more reliable execCommand
                 document.execCommand('copy');
-                // Give user feedback
                 copyBtn.textContent = 'Copied!';
-                setTimeout(() => {
-                    copyBtn.textContent = 'Copy to Clipboard';
-                }, 2000);
             } catch (err) {
                 console.error('Failed to copy text: ', err);
                 copyBtn.textContent = 'Failed to Copy';
-                setTimeout(() => {
-                    copyBtn.textContent = 'Copy to Clipboard';
-                }, 2000);
             }
-            
-            // Clean up the temporary element
             document.body.removeChild(tempTextArea);
         }
 
         function handleSubmit() {
-            labela.textContent = "Code submitted!";
+            labela.textContent = "Code submitted! You can now edit it.";
             originalCode = originalCodeEl.value;
             submitBtn.style.display = 'none';
             generateBtn.style.display = 'unset';
@@ -303,7 +288,52 @@ ${patch}
         submitBtn.addEventListener('click', handleSubmit);
         
         copyBtn.addEventListener('click', copyToClipboard);
+        
+        async function displayMarkdown(markdownText) {
+            const html = marked(markdownText);
+            responseEl.innerHTML = `<div id="output">${html}</div>`;
+        }
 
+        document.getElementById("promptBtn").addEventListener("click", async () => {
+            const apiKey = document.getElementById("apiKey").value;
+            const prompt = document.getElementById("prompt-output").textContent;
+            
+            
+            if (!apiKey) {
+                responseEl.textContent = "Error: Please paste your API key first.";
+                return;
+            }
+
+            const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+            responseEl.textContent = "Thinking...";
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-goog-api-key": apiKey
+                    },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [{
+                                text: prompt
+                            }]
+                        }]
+                    }),
+                });
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                const text = data.candidates[0].content.parts[0].text;
+                displayMarkdown(text);
+            } catch (error) {
+                console.error("Error:", error);
+                responseEl.textContent = "Error fetching response. Check console for details.";
+            }
+        });
     </script>
 
 </body>
