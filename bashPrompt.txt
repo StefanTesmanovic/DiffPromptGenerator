@@ -1,0 +1,181 @@
+You are an expert code reviewer, known for concise and precise reviews. You work with exceptional engineers that understand instantly from concise bullet points.Your job is to analyze the code and inform about readability, complexity and differences with respect to readability and complexity.
+
+Here is the diff of the changes:
+diff --git a/index.html b/index.html
+index 0cb240c..3bb261b 100644
+--- a/index.html
++++ b/index.html
+@@ -146,18 +146,16 @@
+             overflow-y: auto;
+         }
+ 
+-        /* The <pre> tag for the prompt */
+         #prompt-output {
+             font-family: 'Courier New', Courier, monospace;
+             background-color: #f7fafc;
+             padding: 15px;
+             border-radius: 5px;
+-            white-space: pre-wrap; /*stops text from overflowing*/
++            white-space: pre-wrap;
+             word-wrap: break-word; 
+             text-align: left;
+         }
+ 
+-        /* Modal Footer */
+         .modal-footer {
+             padding: 15px 20px;
+             border-top: 1px solid #e2e8f0;
+@@ -168,18 +166,25 @@
+         }
+         
+         #copy-btn {
+-            background-color: #4a5568; /* dark gray */
++            background-color: #4a5568; 
+         }
+         
+         #copy-btn:hover {
+-            background-color: #2d3748; /* darker gray */
++            background-color: #2d3748;
++        }
++        
++        #response { 
++            font-family: 'Courier New', Courier, monospace;
++            background-color: #f7fafc;
++            padding: 15px;
++            border-radius: 5px;
++            white-space: pre-wrap;
++            word-wrap: break-word; 
++            text-align: left;
+         }
+-
+     </style>
+ </head>
+ <body>
+-
+-    <!-- We use simple class names that match our CSS styles -->
+     <div class="container">
+         <header>
+             <h1>Code Diff Prompt Generator</h1>
+@@ -211,9 +216,11 @@
+             </div>
+             <div class="modal-content">
+                 <pre id="prompt-output"></pre>
++                <button id="promptBtn">Test Prompt with Gemini API</button>
++                <pre id="response">Press the button if you want the LLM answer</pre>
+             </div>
+             <div class="modal-footer">
+-                <button id="copy-btn">Copy to Clipboard</button>
++                <button id="copy-btn">Copy Prompt to Clipboard</button>
+             </div>
+         </div>
+     </div>
+@@ -239,13 +246,13 @@
+             const patch = Diff.createPatch('code', originalText, editedText);
+ 
+             const promptTemplate = `
+-You are an expert code reviewer, known for concise and precise reviews. You work with exceptional engineers that understand instantly from concise bullet points.Your job is to analyze the code and inform about readability, complexity and differences to those two criteriums.
++You are an expert code reviewer, known for concise and precise reviews. You work with exceptional engineers that understand instantly from concise bullet points.Your job is to analyze the code and inform about readability, complexity and differences with respect to readability and complexity.
+ 
++Here is the original code:
++${originalText}
+ Here is the diff of the changes:
+-
+-\`\`\`diff
+ ${patch}
+-\`\`\`
++
+ `;          // I noticed that the model was responding with messages that are too 
+             // long and waste time. Because of that I tried to shorten them and preserve 
+             // information by informing the model of the environment and role instead of giving a word limit 
+@@ -255,14 +262,12 @@ ${patch}
+         }
+ 
+         function closeModal() {
+-            // Hide the modal (no animation)
+             modal.style.display = 'none';
+         }
+ 
+         function copyToClipboard() {
+             const textToCopy = promptOutputEl.textContent;
+ 
+-            // Create a temporary textarea element to hold the text
+             const tempTextArea = document.createElement('textarea');
+             tempTextArea.value = textToCopy;
+             tempTextArea.style.position = 'absolute';
+@@ -272,19 +277,11 @@ ${patch}
+             tempTextArea.select();
+             
+             try {
+-                // Use the older, more reliable execCommand
+                 document.execCommand('copy');
+-                // Give user feedback
+                 copyBtn.textContent = 'Copied!';
+-                setTimeout(() => {
+-                    copyBtn.textContent = 'Copy to Clipboard';
+-                }, 2000);
+             } catch (err) {
+                 console.error('Failed to copy text: ', err);
+                 copyBtn.textContent = 'Failed to Copy';
+-                setTimeout(() => {
+-                    copyBtn.textContent = 'Copy to Clipboard';
+-                }, 2000);
+             }
+             
+             // Clean up the temporary element
+@@ -292,7 +289,7 @@ ${patch}
+         }
+ 
+         function handleSubmit() {
+-            labela.textContent = "Code submitted!";
++            labela.textContent = "Code submitted! You can now edit it.";
+             originalCode = originalCodeEl.value;
+             submitBtn.style.display = 'none';
+             generateBtn.style.display = 'unset';
+@@ -303,7 +300,47 @@ ${patch}
+         submitBtn.addEventListener('click', handleSubmit);
+         
+         copyBtn.addEventListener('click', copyToClipboard);
++        
++        document.getElementById("promptBtn").addEventListener("click", async () => {
++            const apiKey = document.getElementById("apiKey").value;
++            const prompt = document.getElementById("prompt-output").textContent;
++            const responseEl = document.getElementById("response");
++            
++            if (!apiKey) {
++                responseEl.textContent = "Error: Please paste your API key first.";
++                return;
++            }
++
++            const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
++            responseEl.textContent = "Thinking...";
+ 
++            try {
++                const response = await fetch(API_URL, {
++                    method: "POST",
++                    headers: {
++                        "Content-Type": "application/json",
++                        "X-goog-api-key": apiKey
++                    },
++                    body: JSON.stringify({
++                        contents: [{
++                            parts: [{
++                                text: prompt
++                            }]
++                        }]
++                    }),
++                });
++                if (!response.ok) {
++                    throw new Error(`HTTP error! status: ${response.status}`);
++                }
++
++                const data = await response.json();
++                const text = data.candidates[0].content.parts[0].text;
++                responseEl.textContent = text;
++            } catch (error) {
++                console.error("Error:", error);
++                responseEl.textContent = "Error fetching response. Check console for details.";
++            }
++        });
+     </script>
+ 
+ </body>
